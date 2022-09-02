@@ -58,14 +58,14 @@ int main(int argc, char **argv)
 		printf("    If VLA is specified, the next argument should be input as:\n");
 		printf("        required -> Required specifications \n");
 		printf("        desired  -> Desired specifications \n");
-		printf("An example with a specified simulated data and coefficient files, simulated data flag of <6>, coefficient flag of <4>, telescope flag <MK>, and mode of <4k> is shown below:\n");
-		printf("    ./scotti_gen /datag/users/mruzinda/i 5 6 MK 4k\n");
+		printf("An example with a specified simulated data number of RAW files, number of RAW files <5>, simulated data flag of <7>, telescope flag <MK>, and mode of <4k> is shown below:\n");
+		printf("    ./scotti_gen /datag/users/mruzinda/i 5 7 MK 4k\n");
 		printf("If the number beams, polarizations and/or antennas are to be chosen, the following command can be used:\n");
 		printf("    ./scotti_gen <RAW and BFR5 file directory> <Number of RAW files> <simulated data flag> <telescope flag> <mode flag or VLASS specifications depending on telescope flag> <number of beams> <number of polarizations> <number of antennas>\n");
 		printf("There are limitations to the values of these 3 additional paramters. The max number of polarizations is 2 in any case. \n");
 		printf("When the telescope is MK, the max number of beams is 64 and antennas is 64. \n");
 		printf("When the telescope is VLA, the max number of beams is 32 and antennas is 32. \n");
-		printf("To test the SETI search pipeline, simulated data flag 6 along with coefficient flag 0 or 4 will work best. \n");
+		printf("To test the SETI search pipeline, simulated data flag 7 will work best. \n");
 
 		return 0;
 	}
