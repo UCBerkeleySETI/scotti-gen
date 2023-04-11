@@ -19,8 +19,8 @@ print(len(contents_float))
 print(contents_float[0])
 
 telescope_flag = "MK" # Observatory/radio telescope in use
-mode_flag = "32k" # Mode of operation
-num_raw_files = 5 # Number of RAW files
+mode_flag = "4k" # Mode of operation
+num_raw_files = 3 # Number of RAW files
 N_fine = 5120000
 
 # Array dimensions
@@ -47,8 +47,8 @@ if telescope_flag == "VLA":
     N_coarse = 1
     # Required
     if mode_flag == "req":
-        N_time = 32*num_raw_files #40 # STI windows
-        N_fine = 156672 #128000
+        N_time = 40*num_raw_files # STI windows #32 for 5013504 time samples and 40 for 5120000 time samples
+        N_fine = 128000 #156672
         N_beam = 1 # Including ncoherent beam # 64
     # Desired
     if mode_flag == "des":
@@ -92,6 +92,6 @@ if N_time > 1:
 plt.plot(10*np.log(contents_array[beam_idx,time_idx,0:int(N_coarse*N_fine)]))
 plt.title('Power spectrum')
 plt.xlabel('Frequency bins')
-plt.ylabel('Power (arb.)')
+plt.ylabel('Power (dB)')
 plt.show()
 #%%

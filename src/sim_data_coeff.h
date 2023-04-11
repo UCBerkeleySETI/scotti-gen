@@ -19,17 +19,18 @@
 #define N_BEAM (64) // 64                                               // Number of beams
 
 // Beamformer Recipe file dimensions depending on observatory and mode of operation
-#define NANTS_MK    64
-#define NANTS_VLA   32
-#define NPOL_BFR5   2
-#define NCHAN_MK1K  1024  // channels per node * number of nodes = 16*64 for MK
-#define NCHAN_MK4K  4096  // channels per node * number of nodes = 64*64 for MK
-#define NCHAN_MK32K 32768 // channels per node * number of nodes = 512*64 for MK
-#define NCHAN_VLA   1024  // channels per node * number of nodes = 32*32 for COSMIC
-#define NTIMES_BFR5 30
-#define NBEAMS_MK   64
-#define NBEAMS_VLAD 31
-#define NBEAMS_VLAR  5
+#define NANTS_MK        64
+#define NANTS_VLA       32
+#define NPOL_BFR5       2
+#define NCHAN_MK1K      1024  // channels per node * number of nodes = 16*64 for MK
+#define NCHAN_MK4K      4096  // channels per node * number of nodes = 64*64 for MK
+#define NCHAN_MK32K     32768 // channels per node * number of nodes = 512*64 for MK
+#define NCHAN_VLA       1024  // channels per node * number of nodes = 32*32 for COSMIC
+#define NTIMES_BFR5     32768 //30
+#define NTIMES_VLA_BFR5 151 //30
+#define NBEAMS_MK       64
+#define NBEAMS_VLAD     31
+#define NBEAMS_VLAR     5
 
 // "2" for inphase and quadrature
 #define N_INPUT       (unsigned long int)(2*N_POL*N_TIME*N_FREQ*N_ANT)                  // Size of input. Currently, same size as output
@@ -69,8 +70,10 @@
 // a - antenna index
 // b - beam index
 
-#define data_in_idx(p, t, w, a, c, Np, Nt, Nw, Na)           ((p) + (Np)*(t) + (Nt)*(Np)*(w) + (Nw)*(Nt)*(Np)*(a) + (Na)*(Nw)*(Nt)*(Np)*(c))
+#define data_in_idx(p, t, w, c, a, Np, Nt, Nw, Nc)           ((p) + (Np)*(t) + (Nt)*(Np)*(w) + (Nw)*(Nt)*(Np)*(c) + (Nc)*(Nw)*(Nt)*(Np)*(a))
+//#define data_in_idx(p, t, w, a, c, Np, Nt, Nw, Na)           ((p) + (Np)*(t) + (Nt)*(Np)*(w) + (Nw)*(Nt)*(Np)*(a) + (Na)*(Nw)*(Nt)*(Np)*(c))
 #define data_raw_idx(p, t, c, a, Np, Nt, Nc)                 ((p) + (Np)*(t) + (Nt)*(Np)*(c) + (Nc)*(Nt)*(Np)*(a))
+//#define data_raw_idx(p, t, b, c, a, Np, Nt, Nb, Nc)          ((p) + (Np)*(t) + (Nt)*(Np)*(b) + (Nb)*(Nt)*(Np)*(c) + (Nc)*(Nb)*(Nt)*(Np)*(a))
 //#define data_in_idx(p, c, a, t, w, Np, Nc, Na, Nt)           ((p) + (Np)*(c) + (Nc)*(Np)*(a) + (Na)*(Nc)*(Np)*(t) + (Nt)*(Na)*(Nc)*(Np)*(w))
 #define data_tr_idx(t, a, p, c, w, Nt, Na, Np, Nc)           ((t) + (Nt)*(a) + (Na)*(Nt)*(p) + (Np)*(Na)*(Nt)*(c) + (Nc)*(Np)*(Na)*(Nt)*(w))
 #define data_fft_out_idx(f, a, p, c, w, Nf, Na, Np, Nc)      ((f) + (Nf)*(a) + (Na)*(Nf)*(p) + (Np)*(Na)*(Nf)*(c) + (Nc)*(Np)*(Na)*(Nf)*(w))
@@ -89,5 +92,6 @@ typedef struct complex_t{
 	float im;
 }complex_t;
 
-signed char* simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, int nt, int n_win, int sim_flag, int telescope_flag, float rect_zero_samps, float freq_band_shift, int filenum);
-float* simulate_coefficients_ubf(int n_sim_ant, int nants, int n_pol, int n_beam, int n_chan, int sim_flag, int telescope_flag);
+signed char* simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, int nt, int n_win, int sim_flag, int telescope_flag, float rect_zero_samps, float freq_band_shift, int filenum, int num_files);
+float* simulate_coefficients_ubf(int n_sim_ant, int nants, int n_pol, int max_n_beams, int actual_n_beams, int n_chan, int sim_flag, int telescope_flag);
+double *delay_bfr5(int nants, int n_beam, int sim_flag, int telescope_flag);
