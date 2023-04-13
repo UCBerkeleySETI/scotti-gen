@@ -49,6 +49,9 @@ int main(int argc, char **argv)
 		printf("        sim_data = 5 -> Simulated complex exponential i.e. exp(j*2*pi*f0*t)\n");
 		printf("        sim_data = 6 -> Simulated drifting signal that simulates ETI given a particular observatory and mode\n");
 		printf("        sim_data = 7 -> Simulated drifting signal that simulates ETI given a particular observatory and mode over a all time samples/blocks in a GUPPI RAW file\n");
+		printf("        sim_data = 8 -> Simulated signal moves across a uniform line array (ULA) from approx. 3 to 176 degrees over a all time samples/blocks in a GUPPI RAW file or files.\n");
+		printf("                        Currently, testing is done with either 1 RAW file or 3 RAW files. Not dynamic to deal with any number of RAW files yet.\n");
+		printf("                        Also, only fully tested with the VLA 'required' mode. Most likely will work with MK '4k' mode since the specifications are similar.");
 		printf("    <telescope flag> - Indicate the observatory specifications that you would like to use:\n");
 		printf("        MK  -> MeeKAT specifications \n");
 		printf("        VLA -> VLA specifications \n");
@@ -57,10 +60,13 @@ int main(int argc, char **argv)
 		printf("    If VLA is specified, the next argument should be input as:\n");
 		printf("        required -> Required specifications \n");
 		printf("        desired  -> Desired specifications \n");
-		printf("An example with a specified simulated data number of RAW files, number of RAW files <5>, simulated data flag of <7>, telescope flag <MK>, and mode of <4k> is shown below:\n");
-		printf("    ./scotti_gen /datag/users/mruzinda/i/ 5 7 MK 4k\n");
+		printf("     <FFT flag> - Set to 1 if there will be an FFT performed, and 0 if there won't be an FFT performed. \n");
+		printf("        FFT-0    -> No FFT performed before beamforming.\n");
+		printf("        FFT-1    -> FFT performed before beamforming.\n");
+		printf("An example with a specified simulated data number of RAW files, number of RAW files <3>, simulated data flag of <8>, telescope flag <VLA>, mode of <required>, and FFT flag <FFT-1> is shown below:\n");
+		printf("    ./scotti_gen /datag/users/mruzinda/i/ 3 8 VLA required FFT-1\n");
 		printf("If the number beams, polarizations and/or antennas are to be chosen, the following command can be used:\n");
-		printf("    ./scotti_gen <RAW and BFR5 file directory> <Number of RAW files> <simulated data flag> <telescope flag> <mode flag or VLASS specifications depending on telescope flag> <number of beams> <number of polarizations> <number of antennas>\n");
+		printf("    ./scotti_gen <RAW and BFR5 file directory> <Number of RAW files> <simulated data flag> <telescope flag> <mode flag or VLASS specifications depending on telescope flag> <FFT flag, 1 if FFT and 0 if not> <number of beams> <number of polarizations> <number of antennas>\n");
 		printf("There are limitations to the values of these 3 additional paramters. The max number of polarizations is 2 in any case. \n");
 		printf("When the telescope is MK, the max number of beams is 64 and antennas is 64. \n");
 		printf("When the telescope is VLA, the max number of beams is 32 and antennas is 32. \n");
@@ -75,13 +81,13 @@ int main(int argc, char **argv)
 	// If only the RAW and BFR5 files directory is entered
 	if (argc == 2)
 	{
-		num_files = 2;
-		sim_data_flag = 7;
+		num_files = 3;
+		sim_data_flag = 8;
 	}
 	else if (argc == 3)
 	{
 		num_files = atoi(argv[2]);
-		sim_data_flag = 7;
+		sim_data_flag = 8;
 	} // If the files and simulated flags are entered
 	else if (argc >= 4)
 	{
@@ -89,8 +95,8 @@ int main(int argc, char **argv)
 		sim_data_flag = atoi(argv[3]);
 		if (sim_data_flag < 0 || sim_data_flag > 8)
 		{
-			printf("sim_data_flag is out of bounds i.e. this option doesn't exist. The flag has been set to 7, the default. \n");
-			sim_data_flag = 7;
+			printf("sim_data_flag is out of bounds i.e. this option doesn't exist. The flag has been set to 8, the default. \n");
+			sim_data_flag = 8;
 		}
 	}
 
@@ -112,14 +118,15 @@ int main(int argc, char **argv)
 	} // Default telescope
 	else
 	{
-		printf("The observatory was not entered. The default is MK -> MeerKAT.\n");
+		printf("The observatory was not entered. The default is VLA.\n");
 		printf("Enter -h as argument for help.\n");
-		telescope_flag = 0;
+		telescope_flag = 1;
 		n_subbands = 16;
 	}
 
 	char mode_flag[5]; // Flag for operational mode for MeerKAT
 	int spec_flag = 0; // Specification flag for VLASS
+	int fft_flag = 0; // If set to 1, then upchannelization is performed, and if set to 0, upchannelization is not performed
 	// If MK is chosen, also get the mode
 	if ((argc > 5) && (strcmp(argv[4], "MK") == 0))
 	{
@@ -144,14 +151,31 @@ int main(int argc, char **argv)
 			spec_flag = 0;
 			strcpy(mode_flag, "required");
 		}
+		if (strcmp(argv[6], "FFT-0") == 0)
+		{
+			fft_flag = 0;
+		}
+		else if (strcmp(argv[6], "FFT-1") == 0)
+		{
+			fft_flag = 1;
+		}
+		else
+		{
+			printf("Incorrect option, enter <FFT-0> or <FFT-1>. The default is with <FFT-1> specifications for VLASS.\n");
+			printf("Enter -h as argument for help.\n");
+			fft_flag = 1;
+			strcpy(mode_flag, "required");
+		}
 	} // Default mode
 	else
 	{
-		printf("4k mode is the default with MeerKAT chosen or if the telescope is not specified. \n");
-		strcpy(mode_flag, "4k");
+		printf("required mode is the default with VLA chosen or if the telescope is not specified. \n");
+		strcpy(mode_flag, "required");
+		fft_flag = 1;
 	}
 
 	printf("Mode = %s \n", mode_flag);
+	printf("FFT flag = %d. If set to 1, an FFT is performed before beamforming, and if set to 0, there isn't.\n", fft_flag);
 
 	// ---------------------------- //
 	// To run in regular array configuration, enter values between 33 and 64 in n_beam and n_ant
@@ -181,7 +205,8 @@ int main(int argc, char **argv)
 	int piperblk_num = 0;
 	int n_samp = 0;
 	int n_sti = 0;
-	int fft_flag = 0; // If set to 1, then upchannelization is performed, and if set to 0, upchannelization is not performed
+	int subband_idx = 0;
+	int chan_idx = 0;
 
 	int raw_file_flag = 1;
 	if (raw_file_flag == 1)
@@ -193,25 +218,25 @@ int main(int argc, char **argv)
 			n_nodes = 64;
 			n_input = N_INPUT;
 			node_bw = 13.375; // 13.375 MHz
-			if (argc > 6)
+			if (argc > 7)
 			{ // If parameters are specified
-				if (argc == 7)
+				if (argc == 8)
 				{
-					n_beam = atoi(argv[6]);
+					n_beam = atoi(argv[7]);
 					n_pol = 2;
-					n_sim_ant = 58;
-				}
-				else if (argc == 8)
-				{
-					n_beam = atoi(argv[6]);
-					n_pol = atoi(argv[7]);
 					n_sim_ant = 58;
 				}
 				else if (argc == 9)
 				{
-					n_beam = atoi(argv[6]);
-					n_pol = atoi(argv[7]);
-					n_sim_ant = atoi(argv[8]);
+					n_beam = atoi(argv[7]);
+					n_pol = atoi(argv[8]);
+					n_sim_ant = 58;
+				}
+				else if (argc == 10)
+				{
+					n_beam = atoi(argv[7]);
+					n_pol = atoi(argv[8]);
+					n_sim_ant = atoi(argv[9]);
 				}
 			}
 			else
@@ -308,36 +333,41 @@ int main(int argc, char **argv)
 				n_ant_config = N_ANT / 2;
 				n_chan = 4;
 				nt = 2064384; // 5120000; // 5120000; // 5013504;
-				if(fft_flag == 0){
+				if (fft_flag == 0)
+				{
 					n_win = 2064384;
-				}else if(fft_flag == 1){
-					n_win = 8; //2064384; // 516096; //8;	  // 40;	  // 40 // 32
+				}
+				else if (fft_flag == 1)
+				{
+					n_win = 8; // 2064384; // 516096; //8;	  // 40;	  // 40 // 32
 				}
 				n_time_int = 1;
+				subband_idx = 3;
+				chan_idx = 2;
 				freq_band_shift = 30000; // 3000;	 // 10000;
 				rect_zero_samps = 50000; // 60000; // freq_band_shift;
 			}							 // Desired Specification
 			else if (spec_flag == 1)
 			{
-				if (argc > 6)
+				if (argc > 7)
 				{ // If parameters are specified
-					if (argc == 7)
+					if (argc == 8)
 					{
-						n_beam = atoi(argv[6]);
+						n_beam = atoi(argv[7]);
 						n_pol = 2;
-						n_sim_ant = 27;
-					}
-					else if (argc == 8)
-					{
-						n_beam = atoi(argv[6]);
-						n_pol = atoi(argv[7]);
 						n_sim_ant = 27;
 					}
 					else if (argc == 9)
 					{
-						n_beam = atoi(argv[6]);
-						n_pol = atoi(argv[7]);
-						n_sim_ant = atoi(argv[8]);
+						n_beam = atoi(argv[7]);
+						n_pol = atoi(argv[8]);
+						n_sim_ant = 27;
+					}
+					else if (argc == 10)
+					{
+						n_beam = atoi(argv[7]);
+						n_pol = atoi(argv[8]);
+						n_sim_ant = atoi(argv[9]);
 					}
 				}
 				else
@@ -376,13 +406,14 @@ int main(int argc, char **argv)
 		printf("n_fft  = %d (Number of points in FFT)\n", n_samp);
 		printf("n_win  = %d (Number of spectral windows after FFT)\n", n_win);
 		printf("n_int  = %d (Number of integrated windows)\n", n_time_int);
-		printf("freq_band_shift  = %f (Frequency offset per spectral window)\n", freq_band_shift);
-		printf("rect_zero_samps  = %f (Number of time samples that are zero on either side of simulated rect)\n", rect_zero_samps);
+		//printf("freq_band_shift  = %f (Frequency offset per spectral window)\n", freq_band_shift);
+		//printf("rect_zero_samps  = %f (Number of time samples that are zero on either side of simulated rect)\n", rect_zero_samps);
 
 		// Generate simulated data
 		// signed char *sim_data = simulate_data_ubf(n_sim_ant, n_ant_config, n_pol, n_chan, n_samp, n_win, sim_data_flag, telescope_flag, rect_zero_samps, freq_band_shift);
 		// printf("Simulated data \n");
 		signed char *sim_data;
+		signed char *sim_noise;
 
 		// --------------------- Write simulated data to file --------------------- //
 		FILE *input_file;
@@ -397,10 +428,16 @@ int main(int argc, char **argv)
 		char sim_raw_filename[256];
 		char filenum_str[5];
 
+		int just_noise = 0;
 		for (int f = 0; f < num_files; f++)
 		{
 			// Generate simulated data
-			sim_data = simulate_data_ubf(n_sim_ant, n_ant_config, n_pol, n_chan, n_samp, n_win, sim_data_flag, telescope_flag, rect_zero_samps, freq_band_shift, f, num_files);
+			just_noise = 0;
+			sim_data = simulate_data_ubf(n_sim_ant, n_ant_config, n_pol, n_chan, n_samp, n_win, sim_data_flag, telescope_flag, rect_zero_samps, freq_band_shift, chan_idx, f, num_files, just_noise);
+
+			// Generate simulated noise
+			just_noise = 1;
+			sim_noise = simulate_data_ubf(n_sim_ant, n_ant_config, n_pol, n_chan, n_samp, n_win, sim_data_flag, telescope_flag, rect_zero_samps, freq_band_shift, chan_idx, f, num_files, just_noise);
 
 			strcpy(sim_raw_filename, argv[1]);
 			strcat(sim_raw_filename, BASEFILE);
@@ -729,15 +766,22 @@ int main(int argc, char **argv)
 				{
 					for (int c = 0; c < (n_chan * n_subbands); c++)
 					{
-						//for (int t = 0; t < ((int)nt / n_blocks); t++)
-						//{
-						//	for (int p = 0; p < n_pol; p++)
-						//	{
-								// fwrite(&sim_data[2 * data_in_idx(0, (((int)nt / n_blocks) * b), 0, a, c, n_pol, nt, 1, n_sim_ant)], sizeof(char), 2 * n_pol * ((int)nt / n_blocks), input_file);
-								fwrite(&sim_data[2 * data_raw_idx(0, (((int)nt / n_blocks) * b), (c % n_chan), a, n_pol, nt, n_chan)], sizeof(char), 2 * n_pol * ((int)nt / n_blocks), input_file);
-								//fwrite(&sim_data[2 * data_raw_idx(p, t, b, (c % n_chan), a, n_pol, ((int)nt / n_blocks), n_blocks, n_chan)], sizeof(char), 2, input_file);
-						//	}
-						//}
+						if (c == ((c % n_chan) + subband_idx * n_chan))
+						{
+							// for (int t = 0; t < ((int)nt / n_blocks); t++)
+							//{
+							//	for (int p = 0; p < n_pol; p++)
+							//	{
+							//  fwrite(&sim_data[2 * data_in_idx(0, (((int)nt / n_blocks) * b), 0, a, c, n_pol, nt, 1, n_sim_ant)], sizeof(char), 2 * n_pol * ((int)nt / n_blocks), input_file);
+							fwrite(&sim_data[2 * data_raw_idx(0, (((int)nt / n_blocks) * b), (c % n_chan), a, n_pol, nt, n_chan)], sizeof(char), 2 * n_pol * ((int)nt / n_blocks), input_file);
+							// fwrite(&sim_data[2 * data_raw_idx(p, t, b, (c % n_chan), a, n_pol, ((int)nt / n_blocks), n_blocks, n_chan)], sizeof(char), 2, input_file);
+							//	}
+							//}
+						}
+						else
+						{
+							fwrite(&sim_noise[2 * data_raw_idx(0, (((int)nt / n_blocks) * b), (c % n_chan), a, n_pol, nt, n_chan)], sizeof(char), 2 * n_pol * ((int)nt / n_blocks), input_file);
+						}
 					}
 				}
 
@@ -889,14 +933,18 @@ int main(int argc, char **argv)
 			{
 				pktidx = floor((float)(t * (num_files * n_blocks * piperblk_num)) / n_times_bfr5);
 				time_array_data[t] = synctime + pktidx * tbin_num * n_samps_per_pkt;
-				if(t == 0 || t == 76 || t == 150){
+				/*
+				if (t == 0 || t == 76 || t == 150)
+				{
 					printf("SCOTTI: pktidx[%d] = %lf\n", t, pktidx);
 				}
+				*/
 			}
+			/*
 			printf("SCOTTI: tbin = %.20f\n", tbin_num);
 			printf("SCOTTI: n_samps_per_pkt = %d\n", n_samps_per_pkt);
 			printf("SCOTTI: time_array[%d] = %.20lf, time_array[%d] = %.20lf, time_array[%d] = %.20lf \n", 0, time_array_data[0], 76, time_array_data[76], 150, time_array_data[150]);
-
+			*/
 			delays_data = delay_bfr5(nants_bfr5, nbeams_bfr5, sim_delay_flag, telescope_flag);
 		}
 	}
@@ -978,22 +1026,22 @@ int main(int argc, char **argv)
 	dec_dims = nbeams_bfr5;
 	dec_dataspace = H5Screate_simple(1, &dec_dims, NULL);
 
-	printf("Here 1\n");
+	//printf("Here 1\n");
 	hsize_t src_dims[1] = {nbeams_bfr5}; /* src name dataset dimensions */
 	src_dataspace = H5Screate_simple(1, src_dims, NULL);
 
-	printf("Here 2\n");
+	//printf("Here 2\n");
 
 	hsize_t obsid_dims[1] = {1}; /* obsid dataset dimensions */
 	obsid_dataspace = H5Screate_simple(1, obsid_dims, NULL);
 
-	printf("Here 3\n");
+	//printf("Here 3\n");
 
 	npol_dataspace = H5Screate(H5S_SCALAR);
 
 	nbeams_dataspace = H5Screate(H5S_SCALAR);
 
-	printf("Here 4\n");
+	//printf("Here 4\n");
 	/*
 	 * Define datatype for the data in the file.
 	 * We will store little endian INT numbers.
@@ -1011,55 +1059,55 @@ int main(int argc, char **argv)
 
 	status = H5Tset_size(obsid_datatype, H5T_VARIABLE);
 
-	printf("Here 4\n");
+	//printf("Here 4\n");
 	/*
 	 * Create a new dataset within the file using defined dataspace and
 	 * datatype and default dataset creation properties.
 	 */
 	cal_all_dataset = H5Dcreate(file, "/calinfo/cal_all", cal_all_datatype, cal_all_dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-	printf("Here 5\n");
+	//printf("Here 5\n");
 	delays_dataset = H5Dcreate(file, "/delayinfo/delays", H5T_IEEE_F64LE, delays_dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-	printf("Here 6\n");
+	//printf("Here 6\n");
 	rates_dataset = H5Dcreate(file, "/delayinfo/rates", H5T_IEEE_F64LE, rates_dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-	printf("Here 7\n");
+	//printf("Here 7\n");
 	time_array_dataset = H5Dcreate(file, "/delayinfo/time_array", H5T_IEEE_F64LE, time_array_dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-	printf("Here 8\n");
+	//printf("Here 8\n");
 	ra_dataset = H5Dcreate(file, "/beaminfo/ras", H5T_IEEE_F64LE, ra_dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-	printf("Here 9\n");
+	//printf("Here 9\n");
 	dec_dataset = H5Dcreate(file, "/beaminfo/decs", H5T_IEEE_F64LE, dec_dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-	printf("Here 10\n");
+	//printf("Here 10\n");
 	src_dataset = H5Dcreate(file, "/beaminfo/src_names", src_datatype, src_dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-	printf("Here 11\n");
+	//printf("Here 11\n");
 	obsid_dataset = H5Dcreate(file, "/obsinfo/obsid", obsid_datatype, obsid_dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-	printf("Here 12\n");
+	//printf("Here 12\n");
 	npol_dataset = H5Dcreate(file, "/diminfo/npol", H5T_STD_I64LE, npol_dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-	printf("Here 13\n");
+	//printf("Here 13\n");
 	nbeams_dataset = H5Dcreate(file, "/diminfo/nbeams", H5T_STD_I64LE, nbeams_dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-	printf("Here 14\n");
+	//printf("Here 14\n");
 
 	/*
 	 * Write the data to the dataset using default transfer properties.
 	 */
 	status = H5Dwrite(cal_all_dataset, reim_tid, H5S_ALL, H5S_ALL, H5P_DEFAULT, cal_all_data);
-	printf("Here 15\n");
+	//printf("Here 15\n");
 	status = H5Dwrite(delays_dataset, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, delays_data);
-	printf("Here 16\n");
+	//printf("Here 16\n");
 	status = H5Dwrite(rates_dataset, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, rates_data);
-	printf("Here 17\n");
+	//printf("Here 17\n");
 	status = H5Dwrite(time_array_dataset, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, time_array_data);
-	printf("Here 18\n");
+	//printf("Here 18\n");
 	status = H5Dwrite(ra_dataset, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, ra_data);
-	printf("Here 19\n");
+	//printf("Here 19\n");
 	status = H5Dwrite(dec_dataset, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dec_data);
-	printf("Here 20\n");
+	//printf("Here 20\n");
 	status = H5Dwrite(src_dataset, src_datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, src_names_str);
-	printf("Here 21\n");
+	//printf("Here 21\n");
 	status = H5Dwrite(obsid_dataset, obsid_datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, obsid);
-	printf("Here 22\n");
+	//printf("Here 22\n");
 	status = H5Dwrite(npol_dataset, H5T_STD_I64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &npol_b5);
-	printf("Here 23\n");
+	//printf("Here 23\n");
 	status = H5Dwrite(nbeams_dataset, H5T_STD_I16LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &nbeams_bfr5);
-	printf("Here 24\n");
+	//printf("Here 24\n");
 
 	/*
 	 * Close/release resources

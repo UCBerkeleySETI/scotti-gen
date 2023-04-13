@@ -9,7 +9,7 @@
 #include "sim_data_coeff.h"
 
 // Generate simulated data
-signed char *simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, int nt, int n_win, int sim_flag, int telescope_flag, float rect_zero_samps, float freq_band_shift, int filenum, int num_files)
+signed char *simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, int nt, int n_win, int sim_flag, int telescope_flag, float rect_zero_samps, float freq_band_shift, int chan_idx, int filenum, int num_files, int just_noise)
 {
 	printf("In sim_data_ubf\n");
 	unsigned long int n_input = 0;
@@ -239,9 +239,12 @@ signed char *simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, 
 		float d = lambda / 2;			  // Distance between antennas
 		float chan_band = 1e6;			  // Coarse channel bandwidth in Hz
 		// float fine_chan_band = chan_band / nt; // Fine channel bandwidth in Hz
-		double theta = 0;	 // SOI direction/angle of arrival
-		double tau = 0;		 // Delay
-		double tbin = 1e-17; // Time between time samples in seconds
+		double theta = 0;	// SOI direction/angle of arrival
+		double tau = 0;		// Delay
+		double tbin = 1e-6; // Time between time samples in seconds
+		double pulse_length = 5000e-6;
+		int pulse_samps = (int)floor(pulse_length / tbin);
+		int zero_samps = (int)(nt - pulse_samps) / 2;
 		double rf_freqs = 0;
 		double cb = 90; // Center beam in degrees
 
@@ -252,8 +255,9 @@ signed char *simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, 
 		// Noise //
 		double *noise_sim;
 		noise_sim = (double *)calloc(n_input, sizeof(double));
-		int upper = 10;
-		int lower = 1;
+		// int upper = 100;
+		// int lower = 1;
+		int rand_range = 1000;
 		double noise_realx = 0;
 		double noise_imagx = 0;
 		double noise_realy = 0;
@@ -264,22 +268,42 @@ signed char *simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, 
 		// Use current time as  seed for random generator
 		srand(time(0));
 		int raw_files = 1; // If set to 1, then there are RAW files being generated so theta might need to spread over RAW files. If set to 0, there are no RAW files being generated
-		float noise_amp = 0.0;
+		float noise_amp = 0;
+		float noise_amp2 = 0;
 		for (int w = 0; w < n_win; w++)
 		{
 			for (int t = 0; t < nt; t++)
 			{
 				for (int f = 0; f < n_chan; f++)
 				{
+					if (nt > 1)
+					{
+						if (f == chan_idx)
+						{
+							noise_amp = 0.00000001;
+						}
+						else
+						{
+							noise_amp = 0.00000001;
+						}
+					}
+					else if (nt == 1)
+					{
+						noise_amp = 0.00000001;
+					}
 					for (int a = 0; a < nants; a++)
 					{
 						if (n_pol == 1)
 						{
 							if (a < n_sim_ant)
 							{
+								//// X polarization
+								// noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan)] = noise_amp * ((rand() % (upper - lower + 1)) + lower);
+								// noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan) + 1] = noise_amp * ((rand() % (upper - lower + 1)) + lower);
+
 								// X polarization
-								noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan)] = noise_amp * ((rand() % (upper - lower + 1)) + lower);
-								noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan) + 1] = noise_amp * ((rand() % (upper - lower + 1)) + lower);
+								noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan)] = noise_amp * ((rand() % 2 * rand_range) - rand_range);
+								noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan) + 1] = noise_amp * ((rand() % 2 * rand_range) - rand_range);
 							}
 							else
 							{
@@ -292,12 +316,19 @@ signed char *simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, 
 						{
 							if (a < n_sim_ant)
 							{
+								//// X polarization
+								// noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan)] = noise_amp * ((rand() % (upper - lower + 1)) + lower);
+								// noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan) + 1] = noise_amp * ((rand() % (upper - lower + 1)) + lower);
+								//// Y polarization
+								// noise_sim[2 * data_in_idx(1, t, w, f, a, n_pol, nt, n_win, n_chan)] = noise_amp * ((rand() % (upper - lower + 1)) + lower);
+								// noise_sim[2 * data_in_idx(1, t, w, f, a, n_pol, nt, n_win, n_chan) + 1] = noise_amp * ((rand() % (upper - lower + 1)) + lower); // Make this negative if a different polarization is tested
+
 								// X polarization
-								noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan)] = noise_amp * ((rand() % (upper - lower + 1)) + lower);
-								noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan) + 1] = noise_amp * ((rand() % (upper - lower + 1)) + lower);
+								noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan)] = noise_amp * ((rand() % 2 * rand_range) - rand_range);
+								noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan) + 1] = noise_amp * ((rand() % 2 * rand_range) - rand_range);
 								// Y polarization
-								noise_sim[2 * data_in_idx(1, t, w, f, a, n_pol, nt, n_win, n_chan)] = noise_amp * ((rand() % (upper - lower + 1)) + lower);
-								noise_sim[2 * data_in_idx(1, t, w, f, a, n_pol, nt, n_win, n_chan) + 1] = noise_amp * ((rand() % (upper - lower + 1)) + lower); // Make this negative if a different polarization is tested
+								noise_sim[2 * data_in_idx(1, t, w, f, a, n_pol, nt, n_win, n_chan)] = noise_amp * ((rand() % 2 * rand_range) - rand_range);
+								noise_sim[2 * data_in_idx(1, t, w, f, a, n_pol, nt, n_win, n_chan) + 1] = noise_amp * ((rand() % 2 * rand_range) - rand_range); // Make this negative if a different polarization is tested
 							}
 							else
 							{
@@ -326,12 +357,15 @@ signed char *simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, 
 				// If set to 1, then there are RAW files being generated so theta might need to spread over RAW files. If set to 0, there are no RAW files being generated
 				if (raw_files == 1)
 				{
-					if(num_files == 1){
+					if (num_files == 1)
+					{
 						deg_per_tsamp = 1.0 / 12000;
-					}else{
+					}
+					else
+					{
 						deg_per_tsamp = 1.0 / 35000;
 					}
-																											  // Degrees per time sample
+					// Degrees per time sample
 					theta = (deg_per_tsamp * ((t + (w * nt) + (filenum * n_win * nt)) - ((nt * n_win * num_files) / 2)) + cb) * PI / 180; // SOI direction/angle of arrival -> Moving across array over time i.e. angle changes each time sample
 				}
 				else
@@ -343,9 +377,77 @@ signed char *simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, 
 				// deg_per_tsamp = 1/50000; // Degrees per time sample
 				// theta = (deg_per_tsamp*((t + w*nt) - ((nt*n_win) / 2)) + cb) * PI / 180; // SOI direction/angle of arrival -> Moving across array over time i.e. angle changes each time sample
 
+				if (nt > 1)
+				{
+					// This is a rect window of noise, knowing that there
+					// is an FFT performed. If constant noise is used, a
+					// delta function is the result which does not show up if a log is used
+					if ((t > zero_samps) && (t < (nt - zero_samps)))
+					{
+						noise_amp2 = 1;
+					}
+					else
+					{
+						noise_amp2 = 0;
+					}
+				}
+
 				for (int f = 0; f < n_chan; f++)
 				{
-					// rf_freqs = chan_band * f + c_freq;
+					// Place signal at one coarse channel
+					if (n_chan > 1)
+					{
+						if (f == chan_idx)
+						{
+							if (just_noise == 0)
+							{
+								pulse = 1;
+								if (nt == 1)
+								{
+									noise_amp2 = 0.01;
+								}
+								// noise_amp2 = 0; // 1;
+							}
+							else if (just_noise == 1)
+							{
+								pulse = 0;
+								if (nt == 1)
+								{
+									noise_amp2 = 1;
+								}
+							}
+						}
+						else
+						{
+							pulse = 0;
+							// noise_amp2 = 0.1; // 100000;
+							if (nt == 1)
+							{
+								noise_amp2 = 1;
+							}
+						}
+					}
+					else
+					{
+						if (just_noise == 0)
+						{
+							pulse = 1;
+							if (nt == 1)
+							{
+								noise_amp2 = 0.01;
+							}
+						}
+						else if (just_noise == 1)
+						{
+							pulse = 0;
+							if (nt == 1)
+							{
+								noise_amp2 = 1;
+							}
+						}
+					}
+					// printf("SIM_DATA_COEFF: freq = %d, noise_amp2 = %e\n", f, noise_amp2);
+					//  rf_freqs = chan_band * f + c_freq;
 					rf_freqs = ((chan_band * (f - (n_chan / 2))) + (chan_band / 2) + c_freq); //
 					// rf_freqs = ((fine_chan_band * (t + (nt*f) - (nt*n_chan / 2))) + (fine_chan_band / 2) + c_freq)*1e-9;
 					for (int a = 0; a < nants; a++)
@@ -355,8 +457,8 @@ signed char *simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, 
 						{
 							if (a < n_sim_ant)
 							{
-								noise_realx = noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan)];
-								noise_imagx = noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan) + 1];
+								noise_realx = (noise_amp2 + noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan)]);
+								noise_imagx = (noise_amp2 + noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan) + 1]);
 								// Requantize from doubles/floats to signed chars with a range from -128 to 127
 								if (nt > 1)
 								{
@@ -382,11 +484,11 @@ signed char *simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, 
 						{
 							if (a < n_sim_ant)
 							{
-								noise_realx = noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan)];
-								noise_imagx = noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan) + 1];
+								noise_realx = (noise_amp2 + noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan)]);
+								noise_imagx = (noise_amp2 + noise_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan) + 1]);
 
-								noise_realy = noise_sim[2 * data_in_idx(1, t, w, f, a, n_pol, nt, n_win, n_chan)];
-								noise_imagy = noise_sim[2 * data_in_idx(1, t, w, f, a, n_pol, nt, n_win, n_chan) + 1];
+								noise_realy = (noise_amp2 + noise_sim[2 * data_in_idx(1, t, w, f, a, n_pol, nt, n_win, n_chan)]);
+								noise_imagy = (noise_amp2 + noise_sim[2 * data_in_idx(1, t, w, f, a, n_pol, nt, n_win, n_chan) + 1]);
 
 								// Requantize from doubles/floats to signed chars with a range from -128 to 127
 								if (nt > 1)
@@ -407,7 +509,7 @@ signed char *simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, 
 									data_sim[2 * data_in_idx(1, t, w, f, a, n_pol, nt, n_win, n_chan)] = (signed char)(((((pulse * cos(2 * PI * rf_freqs * tau) + noise_realy) - tmp_min) / (tmp_max - tmp_min)) - 0.5) * 256);
 									data_sim[2 * data_in_idx(1, t, w, f, a, n_pol, nt, n_win, n_chan) + 1] = (signed char)(((((pulse * sin(2 * PI * rf_freqs * tau) + noise_imagy) - tmp_min) / (tmp_max - tmp_min)) - 0.5) * 256); // Make this negative if a different polarization is tested
 								}
-
+								/*
 								if ((f == (n_chan - 1)) && (w == 0 || w == (n_win / 2) || w == (n_win - 1)))
 								{
 									if (t == 0 || t == (nt - 1))
@@ -420,7 +522,6 @@ signed char *simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, 
 											printf("SIM_DATA: rf_freqs[%d] = %lf GHz \n", f, rf_freqs * 1e-9);
 											printf("SIM_DATA: theta = %lf \n", (theta * 180 / PI));
 											printf("SIM_DATA: tau = %e ns \n", tau * 1e9);
-											printf("SIM_DATA: t-tau = %e ns \n", ((t * tbin) - tau) * 1e9);
 											printf("\n");
 											printf("SIM_DATA: data_sim_r[x] = %d \n", (int)data_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan)]);
 											printf("SIM_DATA: data_sim_r[x] = %d \n", (int)data_sim[2 * data_in_idx(0, t, w, f, a, n_pol, nt, n_win, n_chan) + 1]);
@@ -430,6 +531,7 @@ signed char *simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, 
 										}
 									}
 								}
+								*/
 							}
 							else
 							{
@@ -477,7 +579,7 @@ float *simulate_coefficients_ubf(int n_sim_ant, int nants, int n_pol, int max_n_
 	*/
 	if (sim_flag == 0)
 	{
-		for (int i = 0; i < (n_pol * n_ant_config *  max_n_beams * n_chan); i++)
+		for (int i = 0; i < (n_pol * n_ant_config * max_n_beams * n_chan); i++)
 		{
 			coeff_sim[2 * i] = 1;
 			// coeff_sim[2*i + 1] = 1;
@@ -626,7 +728,7 @@ double *delay_bfr5(int nants, int n_beam, int sim_flag, int telescope_flag)
 		n_time_bf5 = NTIMES_VLA_BFR5;
 	}
 
-	printf("delay_bfr5: n_ant = %d, n_beam = %d\n", nants, n_beam);
+	//printf("delay_bfr5: n_ant = %d, n_beam = %d\n", nants, n_beam);
 	double *tau; // Delay
 	int tau_size = nants * n_beam * n_time_bf5;
 	tau = (double *)calloc(tau_size, sizeof(double));
@@ -672,11 +774,13 @@ double *delay_bfr5(int nants, int n_beam, int sim_flag, int telescope_flag)
 					}
 
 					tau[delay_idx(a, b, t, nants, n_beam)] = (a * d * cos(theta) / c) * 1e9; // Delay in nanoseconds (the beamformer recipe file expects nanoseconds)
+					/*
 					if ((t == 0 || t == 50 || t == 150) && (a == 0 || a == 10 || a == 21))
 					{
 						printf("DELAY_FUNC: theta = %f\n", (theta * 180 / PI));
 						printf("DELAY_FUNC: tau(a=%d, b=%d, t=%d, nants=%d, n_beam=%d) = %e ns\n", a, b, t, nants, n_beam, tau[delay_idx(a, b, t, nants, n_beam)]);
 					}
+					*/
 				}
 				if ((t == 0 || t == 50 || t == 150) && (a == 0 || a == 10 || a == 21))
 				{

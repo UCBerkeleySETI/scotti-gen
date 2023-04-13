@@ -92,6 +92,6 @@ typedef struct complex_t{
 	float im;
 }complex_t;
 
-signed char* simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, int nt, int n_win, int sim_flag, int telescope_flag, float rect_zero_samps, float freq_band_shift, int filenum, int num_files);
+signed char* simulate_data_ubf(int n_sim_ant, int nants, int n_pol, int n_chan, int nt, int n_win, int sim_flag, int telescope_flag, float rect_zero_samps, float freq_band_shift, int chan_idx, int filenum, int num_files, int just_noise);
 float* simulate_coefficients_ubf(int n_sim_ant, int nants, int n_pol, int max_n_beams, int actual_n_beams, int n_chan, int sim_flag, int telescope_flag);
 double *delay_bfr5(int nants, int n_beam, int sim_flag, int telescope_flag);
